@@ -3,14 +3,15 @@ pipeline {
     stages {
         stage('Get Code') {
             steps {
-                // Obtener código del repo
-                git 'https://github.com/FoxMateo/Caso-practico-1b.git'
+                git branch: 'feature_fix_coverage', url: 'https://github.com/FoxMateo/Caso-practico-1b.git'
                 sh 'ls -la'
-                echo WORKSPACE
+                sh 'whoami'
+                sh 'hostname'
+                echo "Workspace: ${WORKSPACE}"
             }
         }
         
-        stage('Unit') {
+        stage('Unit Tests') {
             steps {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sh '''
@@ -22,17 +23,18 @@ pipeline {
             }
         }
         
-        stage('Coverage') {
+        stage('Coverage Tests') {
             steps {
                 sh '''
                     coverage run --branch --source=app --omit=app/__init__.py,app/api.py -m pytest test/unit
                     coverage xml
+                    coverage report -m
                 '''
                 cobertura coberturaReportFile: 'coverage.xml'
             }
         }
         
-        stage('Static') {
+        stage('Static Analysis') {
             steps {
                 sh '''
                     flake8 --exit-zero --format=pylint app >flake8.out
@@ -41,7 +43,7 @@ pipeline {
             }
         }
         
-        stage('Security') {
+        stage('Security Analysis') {
             steps {
                 sh '''
                     bandit --exit-zero -r . -f custom -o bandit.out --msg-template "{abspath}:{line}: {test_id} {msg}"
@@ -49,23 +51,5 @@ pipeline {
                 recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')], qualityGates: [[threshold: 4, type: 'TOTAL', unstable: true], [threshold: 8, type: 'TOTAL', unstable: false]]
             }
         }
-        
-        stage('Start API') {
-            steps {
-                sh '''
-                    export FLASK_APP=app/api.py
-                    nohup flask run --host=0.0.0.0 --port=5000 &
-                '''
-                }
-        }
-        
-        stage('Performance') {
-            steps {
-                sh '''
-                    /home/oscar/cursos/devops-cloud/apache-jmeter-5.6.3/bin/jmeter.sh -n -t /home/oscar/cursos/devops-cloud/apache-jmeter-5.6.3/bin/testplan.jmx -f -l flask.jtl
-                '''
-                perfReport sourceDataFiles: 'flask.jtl'
-            }    
-        } 
     }
 }
