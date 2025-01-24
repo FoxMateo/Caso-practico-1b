@@ -20,11 +20,16 @@ class TestCalculate(unittest.TestCase):
         self.assertEqual(0, self.calc.add(2, -2))
         self.assertEqual(0, self.calc.add(-2, 2))
         self.assertEqual(1, self.calc.add(1, 0))      
-        
+
     def test_divide_method_returns_correct_result(self):
         self.assertEqual(1, self.calc.divide(2, 2))
         self.assertEqual(1.5, self.calc.divide(3, 2))
         self.assertRaises(TypeError, self.calc.divide, "2", 2)
+
+    def test_divide_method_raises_exception_on_zero_division(self):
+        with self.assertRaises(TypeError) as context:
+            self.calc.divide(10, 0)
+        self.assertEqual(str(context.exception), "Division by zero is not possible")
   
     def test_add_method_fails_with_nan_parameter(self):
         self.assertRaises(TypeError, self.calc.add, "2", 2)
